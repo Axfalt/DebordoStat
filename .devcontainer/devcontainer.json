@@ -1,0 +1,20 @@
+{
+    "name": "Python DevContainer",
+    "image": "mcr.microsoft.com/devcontainers/python:3.11-bullseye",
+    "features": {
+        "ghcr.io/devcontainers/features/python-poetry:1": {},
+        "ghcr.io/devcontainers/features/pipx:1": {}
+    },
+    "postCreateCommand": "pip install matplotlib numpy",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python"
+            ]
+        }
+    },
+    "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python"
+    }
+}
+
