@@ -42,9 +42,23 @@ This will run the simulation and display a plot of estimated probability vs thre
 ## Customization
 - You can adjust parameters such as `targets`, `attacking`, `threshold`, and `iterations` directly in the script for different scenarios.
 
+## Parameters of `estimate_probability`
+
+The main function of the script is `estimate_probability`, which estimates the probability that at least one target receives a given fraction of attacks. Here are its parameters:
+
+- `targets` (int): Number of possible targets. Each attack is randomly assigned to one of these. It depends on the number of players alive and the current day.
+- `attacking` (int): Total number of zombie to distribute among the targets. Just keep it close to reality, it doesn't matter much since it only affects the rounding.
+- `threshold` (float): The maximum fraction (between 0 and 1) of total attacks that a target can receive to be considered a success (e.g., 0.2 for 20%).
+- `nb_drapo` (int): Adjustment factor (default 40), used to scale the number of attacks. The effective number of attacks is `attacking * (nb_drapo/40)`.
+- `iterations` (int): Number of simulation runs. Higher values give more accurate probability estimates.
+
+**Return value:**
+- Returns a float between 0 and 1, representing the estimated probability that at least one target receives at least the specified fraction of attacks.
+
+You can adjust these parameters when calling the function to fit your scenario.
+
 ## Output
 - The script generates a plot showing how the probability changes as the threshold varies.
 
 ## Support
 For issues or questions, please open an issue in the repository.
-

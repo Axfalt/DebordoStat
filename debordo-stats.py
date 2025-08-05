@@ -23,10 +23,10 @@ def simulate_attack(targets=16, attacking=100):
     allocated = [x for x in allocated if x > 0]
     return allocated
 
-def estimate_probability(targets=16, attacking=100, threshold=0.2, nb_drapo=38, iterations=10000):
+def estimate_probability(targets=30, attacking=900, threshold=0.2, nb_drapo=30, iterations=10000):
     hits = 0
     # Remove flag influence
-    attacking = round(attacking * (nb_drapo/40))
+    attacking = attacking - round(attacking * (nb_drapo/40))
     for _ in range(iterations):
         allocated = simulate_attack(targets, attacking)
         if any(x >= threshold * attacking for x in allocated):
@@ -34,12 +34,12 @@ def estimate_probability(targets=16, attacking=100, threshold=0.2, nb_drapo=38, 
     return hits / iterations
 
 # Example usage
-# prob = estimate_probability(targets=22, attacking=750, threshold=0.20, iterations=1000000)
+# prob = estimate_probability(targets=30, attacking=800, threshold=0.13, iterations=100000)
 # print(f"Estimated probability: {prob*100:.5f}%")
 
 # Parameters
-thresholds = np.linspace(0.16,0.21, 50)
-probs = [estimate_probability(targets=20, attacking=1500, threshold=t, iterations=1000000) for t in thresholds]
+thresholds = np.linspace(0.07,0.12, 50)
+probs = [estimate_probability(targets=32, attacking=800, threshold=t, iterations=10000,nb_drapo=34) for t in thresholds]
 
 plt.figure(figsize=(8, 5))
 plt.plot(thresholds, probs, marker='o')
