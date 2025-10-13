@@ -28,19 +28,10 @@ def simulate_attack(day=14, attacking=497, drapo=39):
         allocated[idx] += 1
         attacking_cache -= 1
     # Remove zeros (not strictly necessary for probability)
-    allocated = [x+(round(attacking * 0.025)) for x in allocated if x > 0]
+    allocated = [x+(round(attacking * 0.025)) for x in allocated]
     return allocated
 
-def estimate_probability(day=30, attacking=900, threshold=0.2, nb_drapo=30, iterations=10000):
-    hits = 0
-
-    for _ in range(iterations):
-        allocated = simulate_attack(day, attacking, nb_drapo)
-        if any(x >= threshold * attacking for x in allocated):
-            hits += 1
-    return hits / iterations
-
-def debordo(day=14, attacking=185,threshold=15, nb_drapo=40, iterations=100000):
+def debordo(day=25, attacking=2460,threshold=60, nb_drapo=40, iterations=100):
     hits = 0
 
     for _ in range(iterations):
@@ -49,21 +40,71 @@ def debordo(day=14, attacking=185,threshold=15, nb_drapo=40, iterations=100000):
             hits += 1
     return hits / iterations
 
-# Example usage
-# prob = estimate_probability(targets=30, attacking=800, threshold=0.13, iterations=100000)
-# print(f"Estimated probability: {prob*100:.5f}%")
+def attack_distribution(tdg_min, tdg_max):
+    # Retourne un dict {tdg: prob} où les tdg <= milieu ont un poids 2, sinon 1.
+    if tdg_min > tdg_max:
+        return {}
 
-prob = debordo()
-print(f"Estimated probability: {prob*100:.5f}%")
+    mid = tdg_min + 0.5 * (tdg_max - tdg_min)
+    # dernier entier qui reçoit le poids 2
+    high2 = int(math.floor(mid))
 
-# Parameters
-# thresholds = np.linspace(560,580, 20)
-# probs = [debordo(day=14, attacking=t,threshold=15, nb_drapo=40, iterations=100000) for t in thresholds]
+    # nombre d'indices totaux et ceux qui ont le poids 2
+    total_count = tdg_max - tdg_min + 1
+    if high2 < tdg_min:
+        count_low = 0
+    else:
+        count_low = min(high2, tdg_max) - tdg_min + 1
 
-# plt.figure(figsize=(8, 5))
-# plt.plot(thresholds, probs, marker='o')
-# plt.xlabel('Threshold (fraction of attacks)')
-# plt.ylabel('Estimated Probability')
-# plt.title('Probability vs Threshold')
-# plt.grid(True)
-# plt.show()
+    total_weight = 2 * count_low + (total_count - count_low)
+    if total_weight == 0:
+        return {}
+
+    prob = {}
+    for i in range(tdg_min, tdg_max + 1):
+        weight = 2 if i <= high2 else 1
+        prob[i] = weight / total_weight
+
+    return prob
+
+
+def overflow_probability(defense,tdg_interval,min_def,nb_drapo,day,iterations=100):
+    prob_dist = attack_distribution(tdg_interval[0], tdg_interval[1])
+    overflow_prob = 0
+
+    for attack in prob_dist.keys():
+        overflow = attack - defense
+        if overflow > 0:
+            base_prob = prob_dist[attack]
+            success_prob = debordo(day=day, attacking=overflow, threshold=min_def, nb_drapo=nb_drapo, iterations=iterations)
+            overflow_prob += base_prob * success_prob
+    return overflow_prob*100
+
+def plot_defense_death_probability(defense_range, tdg_interval, min_def=61, nb_drapo=40, day=32, iterations=1000):
+    defenses = np.linspace(defense_range[0], defense_range[1], 11)
+    probabilities = []
+
+    for defense in defenses:
+        prob = overflow_probability(defense, tdg_interval, min_def, nb_drapo, day, iterations)
+        print(f"Défense: {defense}, Probabilité de mort: {prob:.3f}%")
+        probabilities.append(prob)
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(defenses, probabilities, marker='o', markersize=4, linestyle='-', linewidth=2)
+    plt.xlabel('Défense')
+    plt.ylabel('Probabilité de mort (%)')
+    plt.title('Probabilité de mort en fonction de la défense (avec D40 à 60 au jour 27)')
+    plt.grid(True, alpha=0.3)
+
+
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+# Exemple d'utilisation
+# tdg_interval = [19561, 20176]
+# defense_range = [17780, 17840]  # Plage de défense à analyser
+# plot_defense_death_probability(defense_range, tdg_interval)
+#
+prob = overflow_probability(17822, (19561, 20176), 61, 40, 32, 1000)
+print(f"Python: {prob:.4f}%")
