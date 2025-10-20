@@ -169,14 +169,14 @@ fn main() {
     println!("🦀 Démarrage du calcul Rust optimisé...");
     let start = Instant::now();
 
-    // Paramètres par défaut (EXACTEMENT comme le script Python)
-    let tdg_interval = (21398, 21975);
-    let defense_range = (19550.0,19650.0 );
+    // TO CHANGE
+    let tdg_interval = (28008, 28909);
+    let defense_range = (26950.0, 27050.0 );
     let min_def = 60;
-    let nb_drapo = 40;
-    let day = 33;
+    let nb_drapo = 34;
+    let day = 37;
     let iterations = 10000;
-    let points = 101;
+    let points = 11;
 
     println!("Paramètres:");
     println!("  - Intervalle TDG: {:?}", tdg_interval);
