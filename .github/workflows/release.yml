@@ -3,7 +3,7 @@ name: Release Rust Executable
 on:
   push:
     branches:
-      - master
+      - main
 
 permissions:
   contents: write
@@ -34,38 +34,53 @@ jobs:
       - name: Build release
         run: cargo build --release
 
-      - name: Package executable
-        id: package
+      - name: Package executable (Linux/macOS)
+        if: runner.os != 'Windows'
+        id: package_unix
         shell: bash
         run: |
           BIN_NAME=debordo
           OUT_DIR=release-artifact
-          mkdir -p $OUT_DIR
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            cp target/release/${BIN_NAME}.exe $OUT_DIR/
-            ZIP_NAME=${BIN_NAME}-windows-x86_64.zip
-            zip -j $ZIP_NAME $OUT_DIR/${BIN_NAME}.exe
-            ARTIFACT_NAME=release-windows-latest
-          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            cp target/release/${BIN_NAME} $OUT_DIR/
+          mkdir -p "$OUT_DIR"
+          cp "target/release/${BIN_NAME}" "$OUT_DIR/"
+          if [ "${{ runner.os }}" = "macOS" ]; then
             ZIP_NAME=${BIN_NAME}-macos-x86_64.zip
-            zip -j $ZIP_NAME $OUT_DIR/${BIN_NAME}
             ARTIFACT_NAME=release-macos-latest
           else
-            # assume linux
-            cp target/release/${BIN_NAME} $OUT_DIR/
             ZIP_NAME=${BIN_NAME}-linux-x86_64.zip
-            zip -j $ZIP_NAME $OUT_DIR/${BIN_NAME}
             ARTIFACT_NAME=release-ubuntu-latest
           fi
+          zip -j "$ZIP_NAME" "$OUT_DIR/${BIN_NAME}"
           echo "artifact=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
           echo "zip=$ZIP_NAME" >> $GITHUB_OUTPUT
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v3
+      - name: Package executable (Windows)
+        if: runner.os == 'Windows'
+        id: package_win
+        shell: pwsh
+        run: |
+          $BIN_NAME = 'debordo.exe'
+          $OUT_DIR = 'release-artifact'
+          New-Item -ItemType Directory -Path $OUT_DIR -Force | Out-Null
+          Copy-Item -Path "target\release\$BIN_NAME" -Destination $OUT_DIR
+          $ZIP_NAME = 'debordo-windows-x86_64.zip'
+          Compress-Archive -Path "$OUT_DIR\$BIN_NAME" -DestinationPath $ZIP_NAME -Force
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "artifact=release-windows-latest"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "zip=$ZIP_NAME"
+
+      - name: Upload build artifact (Linux/macOS)
+        if: runner.os != 'Windows'
+        uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.package.outputs.artifact }}
-          path: ${{ steps.package.outputs.zip }}
+          name: ${{ steps.package_unix.outputs.artifact }}
+          path: ${{ steps.package_unix.outputs.zip }}
+
+      - name: Upload build artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package_win.outputs.artifact }}
+          path: ${{ steps.package_win.outputs.zip }}
 
   create_release:
     name: Create Tag & GitHub Release
@@ -78,19 +93,19 @@ jobs:
           fetch-depth: 0
 
       - name: Download Linux artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: release-ubuntu-latest
           path: artifacts/linux
 
       - name: Download Windows artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: release-windows-latest
           path: artifacts/windows
 
       - name: Download macOS artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: release-macos-latest
           path: artifacts/macos
@@ -110,13 +125,42 @@ jobs:
           git tag ${{ steps.tag.outputs.next_tag }}
           git push origin ${{ steps.tag.outputs.next_tag }}
 
-      - name: Create GitHub Release and upload assets
-        uses: softprops/action-gh-release@v2
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
         with:
           tag_name: ${{ steps.tag.outputs.next_tag }}
-          files: |
-            artifacts/linux/*
-            artifacts/windows/*
-            artifacts/macos/*
+          release_name: ${{ steps.tag.outputs.next_tag }}
+          body: Release ${{ steps.tag.outputs.next_tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Linux release asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/linux/debordo-linux-x86_64.zip
+          asset_name: debordo-linux-x86_64.zip
+          asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows release asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/windows/debordo-windows-x86_64.zip
+          asset_name: debordo-windows-x86_64.zip
+          asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload macOS release asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/macos/debordo-macos-x86_64.zip
+          asset_name: debordo-macos-x86_64.zip
+          asset_content_type: application/zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
