@@ -1,1 +1,4 @@
+#!/usr/bin/env bash
+#MISE depends=["graph:check-prerequisites"]
+
 uv run plot_defense_mortality.py
