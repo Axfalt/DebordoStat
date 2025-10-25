@@ -27,7 +27,8 @@ iterations : nombre d'itérations par défense et attaque différentes (10000 re
 ### Comment déployer et utiliser
 
 1. **Utiliser le dev container**
-   - Ouvrez le projet dans [GitHub Codespaces](https://github.com/features/codespaces) ou dans [Visual Studio Code](https://code.visualstudio.com/) avec l'extension "Dev Containers".
+   - Ouvrez le projet dans [GitHub Codespaces](https://github.com/features/codespaces)
+   ou dans [Visual Studio Code](https://code.visualstudio.com/) avec l'extension "Dev Containers".
    - Toutes les dépendances et outils nécessaires seront installés automatiquement.
    - Vous pouvez alors utiliser le terminal intégré pour exécuter les tâches ci-dessous.
 
