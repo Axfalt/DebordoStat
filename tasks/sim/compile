@@ -4,18 +4,17 @@
 #MISE depends=["sim:check-prerequisites"]
 set -e
 
-if [ -d "${usage_dir}" ]; then
-
+if [ -n "${usage_dir}" ]; then
+  if [ -f "${usage_dir}" ]; then
+    echo "❌ File already present here: '${usage_dir}'"
+    exit 1
+  fi
   if [ ! -d "${usage_dir}" ]; then
     echo "📁 Create output directory '${usage_dir}'"
-    mkdir -p ${usage_dir}
-  fi
-  if [ ! -f "${usage_dir}" ]; then
-      echo "❌ File already present here: '${usage_dir}'"
-      exit 1
+    mkdir -p "${usage_dir}"
   fi
   echo "Compiling DebordoStat for linux in ${usage_dir}"
-  cargo build --release --target-dir ${usage_dir}
+  cargo build --release --target-dir "${usage_dir}"
   exit 0
 fi
 echo "Compiling DebordoStat for linux in ${MISE_ORIGINAL_CWD}/target/release/"
