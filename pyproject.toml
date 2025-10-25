@@ -1,0 +1,5 @@
+[project]
+name = "debordostat-graph"
+version = "0.1.0"
+description = "Add graph generation to debordo-stat thru matplotlib"
+dependencies = ["matplotlib"]

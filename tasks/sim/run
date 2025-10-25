@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Compile DebordoStat for linux"
-#MISE depends=["nux:check-prerequisites"]
+#MISE depends=["sim:check-prerequisites"]
 
 set -e
 

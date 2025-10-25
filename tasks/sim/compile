@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #MISE description="ACompile DebordoStat for linux"
 #USAGE flag "--path <dir>" "Path where to store the executable."
-#MISE depends=["nux:check-prerequisites"]
+#MISE depends=["sim:check-prerequisites"]
 set -e
 
 if [ -d "${usage_dir}" ]; then
