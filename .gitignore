@@ -1,1 +1,48 @@
-/archive/
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+*.egg-info/
+*.egg
+*.env
+.env
+venv/
+ENV/
+.envrc
+
+# Common
+.DS_Store
+*.log
+*.sqlite3
+*.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Test & Coverage
+htmlcov/
+.coverage
+.tox/
+.pytest_cache/
+.mypy_cache/
+
+# Misc
+*.bak
+*.tmp
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Build
+build/
+dist/
+
