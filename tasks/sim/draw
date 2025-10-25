@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE depends=["graph:check-prerequisites"]
+#MISE description="Draw a plot of defense mortality over time"
+
+uv run plot_defense_mortality.py

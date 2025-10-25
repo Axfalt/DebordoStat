@@ -1,20 +1,28 @@
 {
-    "name": "Python DevContainer",
-    "image": "mcr.microsoft.com/devcontainers/python:3.11-bullseye",
-    "features": {
-        "ghcr.io/devcontainers/features/python-poetry:1": {},
-        "ghcr.io/devcontainers/features/pipx:1": {}
-    },
-    "postCreateCommand": "pip install matplotlib numpy",
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                "ms-python.python"
-            ]
-        }
-    },
-    "settings": {
-        "python.defaultInterpreterPath": "/usr/local/bin/python"
+  "name": "mise",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers-extra/features/mise:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "hverlin.mise-vscode"
+      ]
     }
+  },
+  "mounts": [
+    {
+      "source": "mise-data-volume",
+      "target": "/mnt/mise-data",
+      "type": "volume"
+    }
+  ],
+  "containerEnv": {
+    "MISE_DATA_DIR": "/mnt/mise-data"
+  },
+  "remoteEnv": {
+    "PATH": "${containerEnv:PATH}:/mnt/mise-data/shims"
+  },
+  "postCreateCommand": "sudo chown -R vscode:vscode /mnt/mise-data;mise i"
 }
-

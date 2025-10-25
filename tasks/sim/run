@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+#MISE description="Compile and run DebordoStat"
+#MISE depends=["sim:check-prerequisites"]
+
+set -e
+
+echo "Running DebordoStat for linux"
+  cargo run --release
+  exit 0

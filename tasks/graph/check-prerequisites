@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#MISE description="✅ Check prerequisites for Rust"
+#MISE hide=true
+
+set -e
+
+if ! command -v uv &> /dev/null; then
+    echo "❌ Uv is not installed"
+    exit 1
+fi

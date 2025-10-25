@@ -1,0 +1,84 @@
+name: Release Rust Executable
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install cross for cross-compilation
+        run: cargo install cross
+
+      - name: Build for Linux (x86_64)
+        run: cross build --release --target x86_64-unknown-linux-gnu
+
+      - name: Build for Windows (x86_64)
+        run: cross build --release --target x86_64-pc-windows-msvc
+
+      - name: Build for macOS (x86_64)
+        run: cross build --release --target x86_64-apple-darwin
+
+      - name: Get latest tag
+        id: get_tag
+        run: |
+          latest_tag=$(git describe --tags --abbrev=0 || echo "v0.0.0")
+          echo "latest_tag=$latest_tag" >> $GITHUB_OUTPUT
+
+      - name: Set next tag
+        id: set_tag
+        run: |
+          today=$(date +'%Y.%m.%d')
+          next_tag="v${today}"
+          echo "next_tag=$next_tag" >> $GITHUB_OUTPUT
+
+      - name: Create tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag ${{ steps.set_tag.outputs.next_tag }}
+          git push origin ${{ steps.set_tag.outputs.next_tag }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.set_tag.outputs.next_tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Linux binary
+        uses: softprops/action-gh-release@v2
+        with:
+          files: target/x86_64-unknown-linux-gnu/release/*
+          tag_name: ${{ steps.set_tag.outputs.next_tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows binary
+        uses: softprops/action-gh-release@v2
+        with:
+          files: target/x86_64-pc-windows-msvc/release/*
+          tag_name: ${{ steps.set_tag.outputs.next_tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload macOS binary
+        uses: softprops/action-gh-release@v2
+        with:
+          files: target/x86_64-apple-darwin/release/*
+          tag_name: ${{ steps.set_tag.outputs.next_tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
