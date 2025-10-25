@@ -1,12 +1,12 @@
-use std::io::Write;
-use std::fs::File;
 use rand::prelude::*;
 use rand_mt::Mt64;
 use rayon::prelude::*;
-use std::collections::HashMap;
-use std::{fs, path::Path};
-use std::time::Instant;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::Write;
+use std::time::Instant;
+use std::{fs, path::Path};
 
 const CONFIG_PATH: &str = "SimConfig.toml";
 #[derive(Clone)]
@@ -60,9 +60,7 @@ impl AttackSimulator {
         }
 
         // Step 1: Poids aléatoires
-        let mut repartition: Vec<f64> = (0..targets)
-            .map(|_| self.rng.gen::<f64>())
-            .collect();
+        let mut repartition: Vec<f64> = (0..targets).map(|_| self.rng.gen::<f64>()).collect();
 
         // Step 2: Une cible reçoit un boost de +0.3
         let unlucky_index = self.rng.gen_range(0..targets as usize);
@@ -94,7 +92,13 @@ impl AttackSimulator {
 }
 
 /// Version séquentielle de debordo (comme en Python)
-fn debordo_sequential(day: i32, attacking: i32, threshold: i32, nb_drapo: i32, iterations: u32) -> f64 {
+fn debordo_sequential(
+    day: i32,
+    attacking: i32,
+    threshold: i32,
+    nb_drapo: i32,
+    iterations: u32,
+) -> f64 {
     let mut hits = 0;
     for _ in 0..iterations {
         let mut simulator = AttackSimulator::new();
@@ -178,8 +182,12 @@ fn calculate_defense_probabilities(
         .into_par_iter()
         .map(|i| {
             let defense = defense_range.0 as f64 + i as f64 * step;
-            let prob = overflow_probability(defense, tdg_interval, min_def, nb_drapo, day, iterations);
-            println!("Sim {}, Défense: {:.1}, Probabilité de mort: {:.3}%",i, defense, prob);
+            let prob =
+                overflow_probability(defense, tdg_interval, min_def, nb_drapo, day, iterations);
+            println!(
+                "Sim {}, Défense: {:.1}, Probabilité de mort: {:.3}%",
+                i, defense, prob
+            );
             (defense, prob)
         })
         .collect()
@@ -195,7 +203,9 @@ fn main() {
     println!("🦀 Démarrage du calcul Rust optimisé...");
     let start = Instant::now();
 
-    let config = load_config(CONFIG_PATH).expect("SimConfig.toml n'est pas correctement renseigné").CONFIG;
+    let config = load_config(CONFIG_PATH)
+        .expect("SimConfig.toml n'est pas correctement renseigné")
+        .CONFIG;
 
     println!("Paramètres:");
     println!("  - Intervalle TDG: {:?}", config.tdg_interval);
@@ -224,9 +234,12 @@ fn main() {
     let output = File::create(path).unwrap();
     sorted_results.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
     sorted_results.iter().for_each(|r| {
-       let _ = writeln!(&output,"Défense: {:.1}, Probabilité de mort: {:.3}%",r.0, r.1 );
+        let _ = writeln!(
+            &output,
+            "Défense: {:.1}, Probabilité de mort: {:.3}%",
+            r.0, r.1
+        );
     });
-
 
     let duration = start.elapsed();
     println!("\n⏱️  Temps d'exécution: {:.2?}", duration);
