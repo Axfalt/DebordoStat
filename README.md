@@ -32,27 +32,31 @@ iterations : nombre d'itérations par défense et attaque différentes (10000 re
    - Toutes les dépendances et outils nécessaires seront installés automatiquement.
    - Vous pouvez alors utiliser le terminal intégré pour exécuter les tâches ci-dessous.
 
-2. **Installer mise** (Préinstallée dans devcontainer)
-   - Rendez-vous sur https://mise.jdx.dev/ et suivez les instructions selon votre système d'exploitation.
+2. **Installer mise**
+   - Rendez-vous sur https://mise.jdx.dev/ et suivez les instructions selon votre système d'exploitation (Préinstallé dans le devcontainer).
+   - Installez la toolchain: 
+     ```sh
+     mise install
+     ```
 
 3. **Exécuter les tâches**
    - Ouvrez un terminal dans le dossier du projet.
-   - Listez les tâches disponibles :
-     ```sh
-     mise tasks
-     ```
-   - Pour compiler le projet :
-     ```sh
-     mise sim:build
-     ```
    - Pour lancer une simulation (penser à configurer SimConfig.toml) :
        ```sh
-       mise sim:start
+       mise sim:run
        ```
    - Pour afficher les points dans une courbe (après une simulation) :
        ```sh
        mise sim:draw
        ```
+   - Pour compiler le projet :
+     ```sh
+     mise sim:build
+     ```
+   - Listez les tâches disponibles :
+     ```sh
+     mise tasks
+     ```
 
 
 ### Alternative :
@@ -94,15 +98,14 @@ iterations: number of iterations per defense and attack (10,000 recommended for 
    - All dependencies and tools will be installed automatically.
    - You can then use the integrated terminal to run the tasks below.
 
-2. **Install mise** (Preinstalled in devcontainer)
-   - Go to https://mise.jdx.dev/ and follow the instructions for your operating system.
-
+2. **Install mise** 
+   - Go to https://mise.jdx.dev/ and follow the instructions for your operating system (Preinstalled in devcontainer).
+   - Install toolchain:
+     ```sh
+     mise install
+     ```
 3. **Run tasks**
    - Open a terminal in the project folder.
-   - List available tasks:
-     ```sh
-     mise tasks
-     ```
    - To build the project:
      ```sh
      mise sim:build
@@ -115,6 +118,10 @@ iterations: number of iterations per defense and attack (10,000 recommended for 
        ```sh
        mise sim:draw
        ```
+   - List available tasks:
+     ```sh
+     mise tasks
+     ```
 
 ### Alternative :
 **Download exe from releases**
