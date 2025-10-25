@@ -1,0 +1,8 @@
+ # Unix line endings for scripts
+*.sh           text eol=lf
+tasks/**       text eol=lf
+bin/**         text eol=lf
+
+# Also can define which files are text and binary, to help Git make the right decision
+*.md   text
+*.png  binary
