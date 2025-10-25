@@ -112,7 +112,7 @@ iterations: number of iterations per defense and attack (10,000 recommended for 
      ```
    - To run a simulation (make sure to configure SimConfig.toml):
      ```sh
-     mise sim:start
+     mise sim:run
      ```
    - To display points in a graph (after a simulation):
        ```sh
