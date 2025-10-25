@@ -26,7 +26,7 @@ def simulate_attack_python(day=14, attacking=497, drapo=39):
         allocated[idx] += 1
         attacking_cache -= 1
     # Remove zeros (not strictly necessary for probability)
-    allocated = [x+(round(attacking * 0.025)) for x in allocated]
+    allocated = [x + (round(attacking * 0.025)) for x in allocated]
     return allocated
 
 def debordo_python(day=25, attacking=2460, threshold=60, nb_drapo=40, iterations=1000):
