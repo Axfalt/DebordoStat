@@ -1,0 +1,24 @@
+#!/usr/bin/env pwsh
+#MISE description="Compile DebordoStat for Windows"
+#USAGE flag "--path <dir>" "Path where to store the executable."
+#MISE depends=["win:check-prerequisites"]
+
+$ErrorActionPreference = "Stop"
+
+if ($env:usage_dir) {
+    if (-not (Test-Path -Path $env:usage_dir -PathType Container)) {
+        if (Test-Path -Path $env:usage_dir -PathType Leaf) {
+            Write-Host "❌ File already present here: '$env:usage_dir'"
+            exit 1
+        }
+        Write-Host "📁 Create output directory '$env:usage_dir'"
+        New-Item -ItemType Directory -Path $env:usage_dir -Force | Out-Null
+    }
+    Write-Host "Compiling DebordoStat for Windows in $env:usage_dir"
+    cargo build --release --target-dir $env:usage_dir
+    exit 0
+}
+
+Write-Host "Compiling DebordoStat for Windows in $env:MISE_ORIGINAL_CWD/target/release/"
+cargo build --release
+

@@ -21,7 +21,7 @@ def parse_scratch_data(file_path):
 def create_defense_mortality_plot():
     """Crée la courbe défense vs probabilité de mort"""
     # Chemin du fichier scratch.txt
-    scratch_file = r'C:\Users\axfal\AppData\Roaming\JetBrains\PyCharmCE2024.3\scratches\scratch.txt'
+    scratch_file = r'results.txt'
 
     # Parser les données
     defense, mortality = parse_scratch_data(scratch_file)

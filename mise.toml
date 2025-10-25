@@ -1,0 +1,10 @@
+[tools]
+python = "3.12"
+rust = "1.90"
+uv = "0.9.5"
+
+[settings]
+experimental = true
+
+[task_config]
+includes = ["tasks"]

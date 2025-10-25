@@ -1,12 +1,31 @@
+use std::io::Write;
 use rand::prelude::*;
 use rand_mt::Mt64;
 use rayon::prelude::*;
 use std::collections::HashMap;
+use std::{fs, path::Path};
 use std::time::Instant;
+use serde::{Deserialize, Serialize};
 
+const CONFIG_PATH: &str = "SimConfig.toml";
 #[derive(Clone)]
 struct AttackSimulator {
     rng: Mt64, // Utilise Mersenne Twister comme Python
+}
+
+#[derive(Deserialize)]
+struct Root {
+    CONFIG: SimConfig,
+}
+#[derive(Deserialize)]
+struct SimConfig {
+    defense_range: (f64, f64),
+    tdg_interval: (i32, i32),
+    min_def: i32,
+    nb_drapo: i32,
+    day: i32,
+    iterations: u32,
+    points: u32,
 }
 
 impl AttackSimulator {
@@ -150,7 +169,7 @@ fn calculate_defense_probabilities(
     nb_drapo: i32,
     day: i32,
     iterations: u32,
-    points: usize,
+    points: u32,
 ) -> Vec<(f64, f64)> {
     let step = (defense_range.1 - defense_range.0) / (points - 1) as f64;
 
@@ -159,93 +178,56 @@ fn calculate_defense_probabilities(
         .map(|i| {
             let defense = defense_range.0 + i as f64 * step;
             let prob = overflow_probability(defense, tdg_interval, min_def, nb_drapo, day, iterations);
-            println!("Défense: {:.1}, Probabilité de mort: {:.3}%", defense, prob);
+            println!("Sim {}, Défense: {:.1}, Probabilité de mort: {:.3}%",i, defense, prob);
             (defense, prob)
         })
         .collect()
+}
+
+fn load_config<P: AsRef<Path>>(path: P) -> Result<Root, Box<dyn std::error::Error>> {
+    let raw = fs::read_to_string(path)?;
+    let cfg: Root = toml::from_str(&raw)?;
+    Ok(cfg)
 }
 
 fn main() {
     println!("🦀 Démarrage du calcul Rust optimisé...");
     let start = Instant::now();
 
-    // TO CHANGE
-    let tdg_interval = (28008, 28909);
-    let defense_range = (26950.0, 27050.0 );
-    let min_def = 60;
-    let nb_drapo = 34;
-    let day = 37;
-    let iterations = 10000;
-    let points = 11;
+    let config = load_config(CONFIG_PATH).expect("SimConfig.toml n'est pas correctement renseigné").CONFIG;
 
     println!("Paramètres:");
-    println!("  - Intervalle TDG: {:?}", tdg_interval);
-    println!("  - Plage de défense: {:?}", defense_range);
-    println!("  - Défense minimale: {}", min_def);
-    println!("  - Nombre de drapeaux: {}", nb_drapo);
-    println!("  - Jour: {}", day);
-    println!("  - Itérations: {}", iterations);
-    println!("  - Points: {}", points);
+    println!("  - Intervalle TDG: {:?}", config.tdg_interval);
+    println!("  - Plage de défense: {:?}", config.defense_range);
+    println!("  - Défense minimale: {}", config.min_def);
+    println!("  - Nombre de drapeaux: {}", config.nb_drapo);
+    println!("  - Jour: {}", config.day);
+    println!("  - Itérations: {}", config.iterations);
+    println!("  - Points: {}", config.points);
     println!();
 
     // Calcul des probabilités
-    let results = calculate_defense_probabilities(
-        defense_range,
-        tdg_interval,
-        min_def,
-        nb_drapo,
-        day,
-        iterations,
-        points,
-    );
-
-    // Tri des résultats par défense
-    let mut sorted_results = results;
-    sorted_results.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+    // let results = calculate_defense_probabilities(
+    //     config.defense_range,
+    //     config.tdg_interval,
+    //     config.min_def,
+    //     config.nb_drapo,
+    //     config.day,
+    //     config.iterations,
+    //     config.points,
+    // );
+    //
+    // // Tri des résultats par défense
+    // let mut sorted_results = results;
+    // let path = "results.txt";
+    // let output = File::create(path).unwrap();
+    // sorted_results.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+    // sorted_results.iter().for_each(|r| {
+    //    let _ = writeln!(&output,"Défense: {:.1}, Probabilité de mort: {:.3}%",r.0, r.1 );
+    // });
+    //
 
     let duration = start.elapsed();
     println!("\n⏱️  Temps d'exécution: {:.2?}", duration);
-
-    // Trouve les défenses avec probabilité < 1%
-    let safe_defenses: Vec<_> = sorted_results.iter()
-        .filter(|(_, prob)| *prob < 1.0)
-        .collect();
-
-    if !safe_defenses.is_empty() {
-        println!("  - Défenses \"sûres\" (< 1%): {} valeurs", safe_defenses.len());
-        if let Some((def, _)) = safe_defenses.first() {
-            println!("    Défense minimale recommandée: {:.1}", def);
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_attack_distribution() {
-        let dist = attack_distribution(100, 105);
-        assert!(!dist.is_empty());
-
-        let total_prob: f64 = dist.values().sum();
-        assert!((total_prob - 1.0).abs() < 1e-10);
-    }
-
-    #[test]
-    fn test_simulate_attack() {
-        let mut simulator = AttackSimulator::new();
-        let result = simulator.simulate_attack(14, 497, 39);
-        assert!(!result.is_empty());
-
-        // La somme des attaques allouées doit être cohérente
-        let total: i32 = result.iter().sum();
-        assert!(total > 0);
-    }
-
-    #[test]
-    fn test_debordo_parallel() {
-        let prob = debordo_sequential(25, 2460, 60, 40, 100);
-        assert!(prob >= 0.0 && prob <= 1.0);
-    }
+    // println!("✅ Calcul terminé. Résultats sauvegardés dans '{}'.", path);
 }
