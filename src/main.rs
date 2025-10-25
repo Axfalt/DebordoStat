@@ -230,5 +230,5 @@ fn main() {
 
     let duration = start.elapsed();
     println!("\n⏱️  Temps d'exécution: {:.2?}", duration);
-    // println!("✅ Calcul terminé. Résultats sauvegardés dans '{}'.", path);
+    println!("✅ Calcul terminé. Résultats sauvegardés dans '{}'.", path);
 }
