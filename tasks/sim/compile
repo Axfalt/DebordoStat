@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="ACompile DebordoStat for linux"
+#MISE description="Compile DebordoStat for linux"
 #USAGE flag "--path <dir>" "Path where to store the executable."
 #MISE depends=["sim:check-prerequisites"]
 set -e
