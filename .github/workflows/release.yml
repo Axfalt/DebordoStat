@@ -5,13 +5,25 @@ on:
     branches:
       - master
 
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: true
+
 jobs:
-  release:
-    name: Build and Release
-    runs-on: ubuntu-latest
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
@@ -19,66 +31,92 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Install cross for cross-compilation
-        run: cargo install cross
+      - name: Build release
+        run: cargo build --release
 
-      - name: Build for Linux (x86_64)
-        run: cross build --release --target x86_64-unknown-linux-gnu
-
-      - name: Build for Windows (x86_64)
-        run: cross build --release --target x86_64-pc-windows-msvc
-
-      - name: Build for macOS (x86_64)
-        run: cross build --release --target x86_64-apple-darwin
-
-      - name: Get latest tag
-        id: get_tag
+      - name: Package executable
+        id: package
+        shell: bash
         run: |
-          latest_tag=$(git describe --tags --abbrev=0 || echo "v0.0.0")
-          echo "latest_tag=$latest_tag" >> $GITHUB_OUTPUT
+          BIN_NAME=debordo
+          OUT_DIR=release-artifact
+          mkdir -p $OUT_DIR
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            cp target/release/${BIN_NAME}.exe $OUT_DIR/
+            ZIP_NAME=${BIN_NAME}-windows-x86_64.zip
+            zip -j $ZIP_NAME $OUT_DIR/${BIN_NAME}.exe
+            ARTIFACT_NAME=release-windows-latest
+          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            cp target/release/${BIN_NAME} $OUT_DIR/
+            ZIP_NAME=${BIN_NAME}-macos-x86_64.zip
+            zip -j $ZIP_NAME $OUT_DIR/${BIN_NAME}
+            ARTIFACT_NAME=release-macos-latest
+          else
+            # assume linux
+            cp target/release/${BIN_NAME} $OUT_DIR/
+            ZIP_NAME=${BIN_NAME}-linux-x86_64.zip
+            zip -j $ZIP_NAME $OUT_DIR/${BIN_NAME}
+            ARTIFACT_NAME=release-ubuntu-latest
+          fi
+          echo "artifact=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+          echo "zip=$ZIP_NAME" >> $GITHUB_OUTPUT
 
-      - name: Set next tag
-        id: set_tag
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.package.outputs.artifact }}
+          path: ${{ steps.package.outputs.zip }}
+
+  create_release:
+    name: Create Tag & GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (for tagging)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: release-ubuntu-latest
+          path: artifacts/linux
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: release-windows-latest
+          path: artifacts/windows
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: release-macos-latest
+          path: artifacts/macos
+
+      - name: Prepare tag name
+        id: tag
         run: |
           today=$(date +'%Y.%m.%d')
-          next_tag="v${today}"
-          echo "next_tag=$next_tag" >> $GITHUB_OUTPUT
+          echo "next_tag=v${today}" >> $GITHUB_OUTPUT
 
-      - name: Create tag
+      - name: Create git tag and push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git tag ${{ steps.set_tag.outputs.next_tag }}
-          git push origin ${{ steps.set_tag.outputs.next_tag }}
+          git tag ${{ steps.tag.outputs.next_tag }}
+          git push origin ${{ steps.tag.outputs.next_tag }}
 
-      - name: Create GitHub Release
+      - name: Create GitHub Release and upload assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.set_tag.outputs.next_tag }}
+          tag_name: ${{ steps.tag.outputs.next_tag }}
+          files: |
+            artifacts/linux/*
+            artifacts/windows/*
+            artifacts/macos/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Linux binary
-        uses: softprops/action-gh-release@v2
-        with:
-          files: target/x86_64-unknown-linux-gnu/release/*
-          tag_name: ${{ steps.set_tag.outputs.next_tag }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Windows binary
-        uses: softprops/action-gh-release@v2
-        with:
-          files: target/x86_64-pc-windows-msvc/release/*
-          tag_name: ${{ steps.set_tag.outputs.next_tag }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload macOS binary
-        uses: softprops/action-gh-release@v2
-        with:
-          files: target/x86_64-apple-darwin/release/*
-          tag_name: ${{ steps.set_tag.outputs.next_tag }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
