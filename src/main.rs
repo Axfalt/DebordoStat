@@ -1,4 +1,5 @@
 use std::io::Write;
+use std::fs::File;
 use rand::prelude::*;
 use rand_mt::Mt64;
 use rayon::prelude::*;
@@ -19,7 +20,7 @@ struct Root {
 }
 #[derive(Deserialize)]
 struct SimConfig {
-    defense_range: (f64, f64),
+    defense_range: (i32, i32),
     tdg_interval: (i32, i32),
     min_def: i32,
     nb_drapo: i32,
@@ -163,7 +164,7 @@ fn overflow_probability(
 
 /// Calcule les probabilités de mort pour une plage de défenses
 fn calculate_defense_probabilities(
-    defense_range: (f64, f64),
+    defense_range: (i32, i32),
     tdg_interval: (i32, i32),
     min_def: i32,
     nb_drapo: i32,
@@ -171,12 +172,12 @@ fn calculate_defense_probabilities(
     iterations: u32,
     points: u32,
 ) -> Vec<(f64, f64)> {
-    let step = (defense_range.1 - defense_range.0) / (points - 1) as f64;
+    let step = (defense_range.1 as f64 - defense_range.0 as f64) / (points - 1) as f64;
 
     (0..points)
         .into_par_iter()
         .map(|i| {
-            let defense = defense_range.0 + i as f64 * step;
+            let defense = defense_range.0 as f64 + i as f64 * step;
             let prob = overflow_probability(defense, tdg_interval, min_def, nb_drapo, day, iterations);
             println!("Sim {}, Défense: {:.1}, Probabilité de mort: {:.3}%",i, defense, prob);
             (defense, prob)
@@ -207,25 +208,25 @@ fn main() {
     println!();
 
     // Calcul des probabilités
-    // let results = calculate_defense_probabilities(
-    //     config.defense_range,
-    //     config.tdg_interval,
-    //     config.min_def,
-    //     config.nb_drapo,
-    //     config.day,
-    //     config.iterations,
-    //     config.points,
-    // );
-    //
-    // // Tri des résultats par défense
-    // let mut sorted_results = results;
-    // let path = "results.txt";
-    // let output = File::create(path).unwrap();
-    // sorted_results.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
-    // sorted_results.iter().for_each(|r| {
-    //    let _ = writeln!(&output,"Défense: {:.1}, Probabilité de mort: {:.3}%",r.0, r.1 );
-    // });
-    //
+    let results = calculate_defense_probabilities(
+        config.defense_range,
+        config.tdg_interval,
+        config.min_def,
+        config.nb_drapo,
+        config.day,
+        config.iterations,
+        config.points,
+    );
+
+    // Tri des résultats par défense
+    let mut sorted_results = results;
+    let path = "results.txt";
+    let output = File::create(path).unwrap();
+    sorted_results.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+    sorted_results.iter().for_each(|r| {
+       let _ = writeln!(&output,"Défense: {:.1}, Probabilité de mort: {:.3}%",r.0, r.1 );
+    });
+
 
     let duration = start.elapsed();
     println!("\n⏱️  Temps d'exécution: {:.2?}", duration);
