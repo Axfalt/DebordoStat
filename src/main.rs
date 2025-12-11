@@ -1,7 +1,7 @@
 use rand::prelude::*;
 use rand_mt::Mt64;
 use rayon::prelude::*;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
@@ -16,7 +16,7 @@ struct AttackSimulator {
 
 #[derive(Deserialize)]
 struct Root {
-    CONFIG: SimConfig,
+    config: SimConfig,
 }
 #[derive(Deserialize)]
 struct SimConfig {
@@ -36,6 +36,7 @@ impl AttackSimulator {
         }
     }
 
+
     fn new_with_seed(seed: u64) -> Self {
         Self {
             rng: Mt64::new(seed),
@@ -48,12 +49,11 @@ impl AttackSimulator {
         let targets = 10 + 2 * ((day - 10).max(0) / 2);
         let mut leftover = attacking;
 
-        // Réduction par les drapeaux (exactement comme en Python)
+        // Réduction par les drapeaux
         for _ in 0..drapo {
             leftover -= (attacking as f64 * 0.025).round() as i32;
         }
 
-        // CORRECTION CRUCIALE: si leftover <= 0, distribution uniforme du flag bonus
         if leftover <= 0 {
             let flag_bonus = (attacking as f64 * 0.025).round() as i32;
             return vec![flag_bonus; targets as usize];
@@ -70,7 +70,7 @@ impl AttackSimulator {
         let sum_weights: f64 = repartition.iter().sum();
         let normalized: Vec<f64> = repartition.iter().map(|x| x / sum_weights).collect();
 
-        // Step 4: Allocation des attaques (arrondi)
+        // Step 4: Allocation des attaques (et arrondi)
         let mut allocated: Vec<i32> = normalized
             .iter()
             .map(|p| 0.max((p * leftover as f64).round() as i32).min(leftover))
@@ -84,14 +84,13 @@ impl AttackSimulator {
             attacking_cache -= 1;
         }
 
-        // Ajout de l'influence des drapeaux (comme dans le commentaire Python "Remove zeros")
+        // Ajout de l'influence des drapeaux
         let flag_bonus = (attacking as f64 * 0.025).round() as i32;
         allocated.iter_mut().for_each(|x| *x += flag_bonus);
         allocated
     }
 }
 
-/// Version séquentielle de debordo (comme en Python)
 fn debordo_sequential(
     day: i32,
     attacking: i32,
@@ -110,7 +109,6 @@ fn debordo_sequential(
     hits as f64 / iterations as f64
 }
 
-/// Calcule la distribution d'attaque selon la logique du jeu
 fn attack_distribution(tdg_min: i32, tdg_max: i32) -> HashMap<i32, f64> {
     if tdg_min > tdg_max {
         return HashMap::new();
@@ -205,7 +203,7 @@ fn main() {
 
     let config = load_config(CONFIG_PATH)
         .expect("SimConfig.toml n'est pas correctement renseigné")
-        .CONFIG;
+        .config;
 
     println!("Paramètres:");
     println!("  - Intervalle TDG: {:?}", config.tdg_interval);
