@@ -16,6 +16,7 @@ struct AttackSimulator {
 
 #[derive(Deserialize)]
 struct Root {
+    #[serde(rename = "CONFIG")]
     config: SimConfig,
 }
 #[derive(Deserialize)]
@@ -27,6 +28,7 @@ struct SimConfig {
     day: i32,
     iterations: u32,
     points: u32,
+    panda: bool,
 }
 
 impl AttackSimulator {
@@ -109,7 +111,8 @@ fn debordo_sequential(
     hits as f64 / iterations as f64
 }
 
-fn attack_distribution(tdg_min: i32, tdg_max: i32) -> HashMap<i32, f64> {
+fn attack_distribution(tdg_min: i32, tdg_max: i32, panda: bool) -> HashMap<i32, f64> {
+    //TODO : gérer le bug sur la pondération de l'attaque qui se fait sur les range théoriques et pas tdg (influence faible)
     if tdg_min > tdg_max {
         return HashMap::new();
     }
@@ -130,11 +133,18 @@ fn attack_distribution(tdg_min: i32, tdg_max: i32) -> HashMap<i32, f64> {
     }
 
     let mut prob = HashMap::new();
-    for i in tdg_min..=tdg_max {
-        let weight = if i <= high2 { 2.0 } else { 1.0 };
-        prob.insert(i, weight / total_weight as f64);
+    if panda == true {
+        // Distribution uniforme pour la pandé est activé
+        for i in tdg_min..=tdg_max {
+            prob.insert(i, 1.0 / total_count as f64);
+        }
+    } else {
+        for i in tdg_min..=tdg_max {
+            // Distribution pondéré pour la RE (par défaut)
+            let weight = if i <= high2 { 2.0 } else { 1.0 };
+            prob.insert(i, weight / total_weight as f64);
+        }
     }
-
     prob
 }
 
@@ -146,16 +156,16 @@ fn overflow_probability(
     nb_drapo: i32,
     day: i32,
     iterations: u32,
+    panda : bool,
 ) -> f64 {
-    let prob_dist = attack_distribution(tdg_interval.0, tdg_interval.1);
+
+    let prob_dist = attack_distribution(tdg_interval.0, tdg_interval.1, panda);
     let mut overflow_prob = 0.0;
 
     for (&attack, &base_prob) in &prob_dist {
-        // CORRIGÉ: calcul exact comme en Python (attack - defense)
         let overflow = attack as f64 - defense;
         if overflow > 0.0 {
             let overflow_int = overflow as i32;
-            // CHANGÉ: utilise la version séquentielle au lieu de parallèle
             let success_prob = debordo_sequential(day, overflow_int, min_def, nb_drapo, iterations);
             overflow_prob += base_prob * success_prob;
         }
@@ -173,6 +183,7 @@ fn calculate_defense_probabilities(
     day: i32,
     iterations: u32,
     points: u32,
+    panda: bool,
 ) -> Vec<(f64, f64)> {
     let step = (defense_range.1 as f64 - defense_range.0 as f64) / (points - 1) as f64;
 
@@ -181,7 +192,7 @@ fn calculate_defense_probabilities(
         .map(|i| {
             let defense = defense_range.0 as f64 + i as f64 * step;
             let prob =
-                overflow_probability(defense, tdg_interval, min_def, nb_drapo, day, iterations);
+                overflow_probability(defense, tdg_interval, min_def, nb_drapo, day, iterations, panda);
             println!(
                 "Sim {}, Défense: {:.1}, Probabilité de mort: {:.3}%",
                 i, defense, prob
@@ -213,6 +224,7 @@ fn main() {
     println!("  - Jour: {}", config.day);
     println!("  - Itérations: {}", config.iterations);
     println!("  - Points: {}", config.points);
+    println!("  - Panda: {}", config.panda);
     println!();
 
     // Calcul des probabilités
@@ -224,6 +236,7 @@ fn main() {
         config.day,
         config.iterations,
         config.points,
+        config.panda
     );
 
     // Tri des résultats par défense

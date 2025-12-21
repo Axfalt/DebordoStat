@@ -1,8 +1,9 @@
 [CONFIG]
-tdg_interval = [28008, 28909]
-defense_range = [26950, 27050]
-points = 11
-min_def = 60
-nb_drapo = 39
+tdg_interval = [419,576]
+defense_range = [273, 500]
+points = 228
+min_def = 7
+nb_drapo = 40
 day = 37
-iterations = 100
+iterations = 100000
+panda = true
