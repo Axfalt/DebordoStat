@@ -1,4 +1,5 @@
 use rand::prelude::*;
+use rand::distributions::Uniform;
 use rand_mt::Mt64;
 use rayon::prelude::*;
 use serde::{Deserialize};
@@ -28,7 +29,7 @@ struct SimConfig {
     day: i32,
     iterations: u32,
     points: u32,
-    panda: bool,
+    is_reactor_built: Option<bool>,
 }
 
 impl AttackSimulator {
@@ -38,12 +39,6 @@ impl AttackSimulator {
         }
     }
 
-
-    fn new_with_seed(seed: u64) -> Self {
-        Self {
-            rng: Mt64::new(seed),
-        }
-    }
 
     /// Simule une attaque selon la logique du jeu
     fn simulate_attack(&mut self, day: i32, attacking: i32, drapo: i32) -> Vec<i32> {
@@ -99,11 +94,15 @@ fn debordo_sequential(
     threshold: i32,
     nb_drapo: i32,
     iterations: u32,
+    is_reactor_built: Option<bool>,
 ) -> f64 {
     let mut hits = 0;
+    let mut rng = rand::thread_rng();
+    let reactor_damage = Uniform::from(100..=250);
     for _ in 0..iterations {
+        let real_attacking = if is_reactor_built.unwrap_or(false) {attacking} else {attacking - reactor_damage.sample(&mut rng)};
         let mut simulator = AttackSimulator::new();
-        let allocated = simulator.simulate_attack(day, attacking, nb_drapo);
+        let allocated = simulator.simulate_attack(day, real_attacking, nb_drapo);
         if allocated.iter().any(|&x| x > threshold) {
             hits += 1;
         }
@@ -111,7 +110,7 @@ fn debordo_sequential(
     hits as f64 / iterations as f64
 }
 
-fn attack_distribution(tdg_min: i32, tdg_max: i32, panda: bool) -> HashMap<i32, f64> {
+fn attack_distribution(tdg_min: i32, tdg_max: i32) -> HashMap<i32, f64> {
     //TODO : gérer le bug sur la pondération de l'attaque qui se fait sur les range théoriques et pas tdg (influence faible)
     if tdg_min > tdg_max {
         return HashMap::new();
@@ -133,18 +132,10 @@ fn attack_distribution(tdg_min: i32, tdg_max: i32, panda: bool) -> HashMap<i32, 
     }
 
     let mut prob = HashMap::new();
-    if panda == true {
-        // Distribution uniforme pour la pandé est activé
-        for i in tdg_min..=tdg_max {
-            prob.insert(i, 1.0 / total_count as f64);
-        }
-    } else {
-        for i in tdg_min..=tdg_max {
-            // Distribution pondéré pour la RE (par défaut)
-            let weight = if i <= high2 { 2.0 } else { 1.0 };
-            prob.insert(i, weight / total_weight as f64);
-        }
+    for i in tdg_min..=tdg_max {
+        prob.insert(i, 1.0 / total_count as f64);
     }
+
     prob
 }
 
@@ -156,17 +147,17 @@ fn overflow_probability(
     nb_drapo: i32,
     day: i32,
     iterations: u32,
-    panda : bool,
+    is_reactor_build : Option<bool>
 ) -> f64 {
 
-    let prob_dist = attack_distribution(tdg_interval.0, tdg_interval.1, panda);
+    let prob_dist = attack_distribution(tdg_interval.0, tdg_interval.1);
     let mut overflow_prob = 0.0;
 
     for (&attack, &base_prob) in &prob_dist {
         let overflow = attack as f64 - defense;
         if overflow > 0.0 {
             let overflow_int = overflow as i32;
-            let success_prob = debordo_sequential(day, overflow_int, min_def, nb_drapo, iterations);
+            let success_prob = debordo_sequential(day, overflow_int, min_def, nb_drapo, iterations, is_reactor_build);
             overflow_prob += base_prob * success_prob;
         }
     }
@@ -183,7 +174,7 @@ fn calculate_defense_probabilities(
     day: i32,
     iterations: u32,
     points: u32,
-    panda: bool,
+    is_reactor_built: Option<bool>,
 ) -> Vec<(f64, f64)> {
     let step = (defense_range.1 as f64 - defense_range.0 as f64) / (points - 1) as f64;
 
@@ -192,7 +183,7 @@ fn calculate_defense_probabilities(
         .map(|i| {
             let defense = defense_range.0 as f64 + i as f64 * step;
             let prob =
-                overflow_probability(defense, tdg_interval, min_def, nb_drapo, day, iterations, panda);
+                overflow_probability(defense, tdg_interval, min_def, nb_drapo, day, iterations, is_reactor_built);
             println!(
                 "Sim {}, Défense: {:.1}, Probabilité de mort: {:.3}%",
                 i, defense, prob
@@ -209,7 +200,7 @@ fn load_config<P: AsRef<Path>>(path: P) -> Result<Root, Box<dyn std::error::Erro
 }
 
 fn main() {
-    println!("🦀 Démarrage du calcul Rust optimisé...");
+    println!("🦀 Démarrage du calcul ...");
     let start = Instant::now();
 
     let config = load_config(CONFIG_PATH)
@@ -224,7 +215,7 @@ fn main() {
     println!("  - Jour: {}", config.day);
     println!("  - Itérations: {}", config.iterations);
     println!("  - Points: {}", config.points);
-    println!("  - Panda: {}", config.panda);
+    println!("  - Réacteur construit: {}", config.is_reactor_built.unwrap_or(false));
     println!();
 
     // Calcul des probabilités
@@ -236,7 +227,7 @@ fn main() {
         config.day,
         config.iterations,
         config.points,
-        config.panda
+        config.is_reactor_built,
     );
 
     // Tri des résultats par défense
