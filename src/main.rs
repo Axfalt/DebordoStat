@@ -1,5 +1,5 @@
 use rand::prelude::*;
-use rand::distributions::Uniform;
+use rand::distr::Uniform;
 use rand_mt::Mt64;
 use rayon::prelude::*;
 use serde::{Deserialize};
@@ -57,10 +57,10 @@ impl AttackSimulator {
         }
 
         // Step 1: Poids aléatoires
-        let mut repartition: Vec<f64> = (0..targets).map(|_| self.rng.gen::<f64>()).collect();
+        let mut repartition: Vec<f64> = (0..targets).map(|_| self.rng.random::<f64>()).collect();
 
         // Step 2: Une cible reçoit un boost de +0.3
-        let unlucky_index = self.rng.gen_range(0..targets as usize);
+        let unlucky_index = self.rng.random_range(0..targets as usize);
         repartition[unlucky_index] += 0.3;
 
         // Step 3: Normalisation
@@ -70,13 +70,16 @@ impl AttackSimulator {
         // Step 4: Allocation des attaques (et arrondi)
         let mut allocated: Vec<i32> = normalized
             .iter()
-            .map(|p| 0.max((p * leftover as f64).round() as i32).min(leftover))
+            .map(|p| {
+                let val = (p * leftover as f64).round() as i32;
+                val.max(0).min(leftover)
+            })
             .collect();
 
         // Step 5: Allocation des attaques restantes
         let mut attacking_cache = leftover - allocated.iter().sum::<i32>();
         while attacking_cache > 0 {
-            let idx = self.rng.gen_range(0..targets as usize);
+            let idx = self.rng.random_range(0..targets as usize);
             allocated[idx] += 1;
             attacking_cache -= 1;
         }
@@ -97,10 +100,10 @@ fn debordo_sequential(
     is_reactor_built: Option<bool>,
 ) -> f64 {
     let mut hits = 0;
-    let mut rng = rand::thread_rng();
-    let reactor_damage = Uniform::from(100..=250);
+    let mut rng = rand::rng();
+    let reactor_damage = Uniform::new_inclusive(100, 250).unwrap();
     for _ in 0..iterations {
-        let real_attacking = if is_reactor_built.unwrap_or(false) {attacking} else {attacking - reactor_damage.sample(&mut rng)};
+        let real_attacking = if is_reactor_built.unwrap_or(false) {attacking + reactor_damage.sample(&mut rng)} else {attacking};
         let mut simulator = AttackSimulator::new();
         let allocated = simulator.simulate_attack(day, real_attacking, nb_drapo);
         if allocated.iter().any(|&x| x > threshold) {
@@ -147,7 +150,7 @@ fn overflow_probability(
     nb_drapo: i32,
     day: i32,
     iterations: u32,
-    is_reactor_build : Option<bool>
+    is_reactor_built : Option<bool>
 ) -> f64 {
 
     let prob_dist = attack_distribution(tdg_interval.0, tdg_interval.1);
@@ -157,7 +160,7 @@ fn overflow_probability(
         let overflow = attack as f64 - defense;
         if overflow > 0.0 {
             let overflow_int = overflow as i32;
-            let success_prob = debordo_sequential(day, overflow_int, min_def, nb_drapo, iterations, is_reactor_build);
+            let success_prob = debordo_sequential(day, overflow_int, min_def, nb_drapo, iterations, is_reactor_built);
             overflow_prob += base_prob * success_prob;
         }
     }
