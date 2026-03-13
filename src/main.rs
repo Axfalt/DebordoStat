@@ -8,6 +8,7 @@ use std::fs::File;
 use std::io::Write;
 use std::time::Instant;
 use std::{fs, path::Path};
+use std::cmp::max;
 
 const CONFIG_PATH: &str = "SimConfig.toml";
 #[derive(Clone)]
@@ -113,30 +114,34 @@ fn debordo_sequential(
     hits as f64 / iterations as f64
 }
 
-fn attack_distribution(tdg_min: i32, tdg_max: i32) -> HashMap<i32, f64> {
-    //TODO : gérer le bug sur la pondération de l'attaque qui se fait sur les range théoriques et pas tdg (influence faible)
+fn attack_distribution(tdg_min: i32, tdg_max: i32, day: i32) -> HashMap<i32, f64> {
     if tdg_min > tdg_max {
         return HashMap::new();
     }
+    let ratio = if day <= 3 { 0.75 } else { 1.1 } as f64;
+    let lo = (ratio * (max(1, day - 1) as f64 * 0.75 + 2.5).powi(3)).round() as i32;
+    let hi = (ratio * (day as f64 * 0.75 + 3.5).powi(3)).round() as i32;
+    let mid = lo as f64 + 0.5 * (hi - lo) as f64;
+    let mid_floor = mid.floor() as i32;
 
-    let mid = tdg_min as f64 + 0.5 * (tdg_max - tdg_min) as f64;
-    let high2 = mid.floor() as i32;
+    let total_count = (tdg_max - tdg_min + 1) as f64;
+    let p = 1.0 / total_count;
 
-    let total_count = tdg_max - tdg_min + 1;
-    let count_low = if high2 < tdg_min {
-        0
+    let n_high = if mid_floor < tdg_max {
+        (tdg_max - mid_floor) as f64
     } else {
-        high2.min(tdg_max) - tdg_min + 1
+        0.0
     };
 
-    let total_weight = 2 * count_low + (total_count - count_low);
-    if total_weight == 0 {
-        return HashMap::new();
-    }
+    let reroll_prob = n_high * p;
 
     let mut prob = HashMap::new();
     for i in tdg_min..=tdg_max {
-        prob.insert(i, 1.0 / total_count as f64);
+        if i <= mid_floor {
+            prob.insert(i, p + reroll_prob * p);
+        } else {
+            prob.insert(i, reroll_prob * p);
+        }
     }
 
     prob
@@ -153,7 +158,7 @@ fn overflow_probability(
     is_reactor_built : Option<bool>
 ) -> f64 {
 
-    let prob_dist = attack_distribution(tdg_interval.0, tdg_interval.1);
+    let prob_dist = attack_distribution(tdg_interval.0, tdg_interval.1, day);
     let mut overflow_prob = 0.0;
 
     for (&attack, &base_prob) in &prob_dist {
@@ -179,7 +184,7 @@ fn calculate_defense_probabilities(
     points: u32,
     is_reactor_built: Option<bool>,
 ) -> Vec<(f64, f64)> {
-    let step = (defense_range.1 as f64 - defense_range.0 as f64) / (points - 1) as f64;
+    let step = ((defense_range.1 as f64 + 1.0) - defense_range.0 as f64) / points as f64;
 
     (0..points)
         .into_par_iter()

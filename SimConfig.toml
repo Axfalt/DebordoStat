@@ -1,9 +1,9 @@
 [CONFIG]
-tdg_interval = [419,576]
-defense_range = [273, 500]
-points = 228
-min_def = 7
-nb_drapo = 40
-day = 37
-iterations = 100000
-panda = true
+tdg_interval = [2127, 2368]
+defense_range = [2268,2368]
+points = 101
+min_def = 10
+nb_drapo = 0
+day = 25
+iterations = 50000
+is_reactor_built = false
