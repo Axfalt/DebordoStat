@@ -1,9 +1,14 @@
 [CONFIG]
-tdg_interval = [2127, 2368]
-defense_range = [2268,2368]
-points = 101
-min_def = 10
+tdg_interval = [20109, 20861]
+defense_range = [20338,20538]
+points = 201
+min_def = 46
 nb_drapo = 0
-day = 25
-iterations = 50000
+day = 34
+iterations = 30000
 is_reactor_built = false
+
+[ESTIMATION25]
+enabled = true
+iterations = 1000000
+observations = ["24:17188-17674"]
